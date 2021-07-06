@@ -85,7 +85,8 @@ public class SlackController {
             UserStatusChecks userStatusChecks = new UserStatusChecks(userDTO,
                     userService.trialAccountActivated(userDTO),
                     userService.trialAccountInitiated(userDTO),
-                    slackService.withClarificationNote(userDTO, false));
+                    slackService.withClarificationNote(userDTO, false),
+                    slackService.withEmbargoNote(userDTO));
             if (actionId == ActionId.MORE_ACTIONS) {
                 actionId = slackService.getActionIdFromMoreActions(pl);
             }
@@ -117,6 +118,10 @@ public class SlackController {
                 case SEND_ACADEMIC_CLARIFICATION_EMAIL:
                     userStatusChecks.setAcademicClarificationEmailSent(true);
                     mailService.sendAcademicClarificationEmail(userDTO);
+                    break;
+                case SEND_EMBARGO_EMAIL:
+                    userStatusChecks.setEmbargoEmailSent(true);
+                    mailService.sendEmbargoedCountryEmail(userDTO);
                     break;
                 default:
                     break;

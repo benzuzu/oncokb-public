@@ -146,6 +146,7 @@ public class SlackService {
                 if (Objects.nonNull(message.getText()) && message.getText().equals(REQUEST_MESSAGE_TEXT) && Objects.nonNull(message.getBlocks())) {
                     if (!(getBlockWithId(message.getBlocks(), COLLAPSED).isPresent()
                         || getBlockWithId(message.getBlocks(), ACADEMIC_CLARIFICATION_NOTE).isPresent()
+                        || getBlockWithId(message.getBlocks(), EMBARGOED_COUNTRY_NOTE).isPresent()
                         || getBlockWithId(message.getBlocks(), MSK_USER_NOTE).isPresent()
                         || getBlockWithId(message.getBlocks(), TRIAL_ACCOUNT_NOTE).isPresent()
                         || getBlockWithId(message.getBlocks(), APPROVED_NOTE).isPresent()
@@ -238,6 +239,8 @@ public class SlackService {
         if (!userDTO.isActivated()) {
             if (userStatusChecks.isAcademicClarificationEmailSent()) {
                 sb.append(":\nClarified with user on noninstitutional email");
+            } else if (userStatusChecks.isEmbargoEmailSent()) {
+                sb.append(":\nRejected due to embargo policy");
             }
         }
         sb.append(")");
@@ -302,9 +305,11 @@ public class SlackService {
         List<LayoutBlock> blocks = new ArrayList<>();
         final String LICENSED_DOMAIN_APPROVE_NOTE = ":star: *This email domain belongs to a licensed company. Please review and approve accordingly.*";
         final String TRIALED_DOMAIN_APPROVE_NOTE = ":bangbang: *This email domain belongs to a company that has trial license.*";
+        final String EMBARGOED_COUNTRY_NOTE = ":warning: *This account is affiliated with a company located in an embargoed country.*";
 
         boolean domainIsLicensed = false;
         boolean domainIsTrialed = false;
+        boolean inEmbargoedCountry = false;
         List<String> licensedDomains = applicationProperties.getLicensedDomainsList();
         if (!licensedDomains.isEmpty() && licensedDomains.stream().anyMatch(domain -> getEmailDomain(userDTO.getEmail().toLowerCase()).equals(domain.toLowerCase()))) {
             domainIsLicensed = true;
@@ -313,11 +318,17 @@ public class SlackService {
         if (!trialedDomains.isEmpty() && trialedDomains.stream().anyMatch(domain -> getEmailDomain(userDTO.getEmail().toLowerCase()).equals(domain.toLowerCase()))) {
             domainIsTrialed = true;
         }
+        List<String> embargoedCountries = applicationProperties.getEmbargoedCountriesList();
+        if (!embargoedCountries.isEmpty() && embargoedCountries.stream().anyMatch(country -> userDTO.getCountry().equalsIgnoreCase(country))) {
+            inEmbargoedCountry = true;
+        }
 
         if (domainIsLicensed)
             blocks.add(SectionBlock.builder().text(MarkdownTextObject.builder().text(LICENSED_DOMAIN_APPROVE_NOTE).build()).build());
         if (domainIsTrialed)
             blocks.add(SectionBlock.builder().text(MarkdownTextObject.builder().text(TRIALED_DOMAIN_APPROVE_NOTE).build()).build());
+        if (inEmbargoedCountry)
+            blocks.add(SectionBlock.builder().text(MarkdownTextObject.builder().text(EMBARGOED_COUNTRY_NOTE).build()).build());
 
         return blocks;
     }
@@ -372,6 +383,14 @@ public class SlackService {
             }
         }
         return withClarificationNote;
+    }
+
+    public boolean withEmbargoNote(UserDTO userDTO) {
+        boolean withEmbargoNote = false;
+        if (!userMailsService.findUserMailsByUserAndMailTypeAndSentDateAfter(userMapper.userDTOToUser(userDTO), MailType.COMPANY_IS_IN_EMBARGOED_COUNTRY, null).isEmpty()) {
+            withEmbargoNote = true;
+        }
+        return withEmbargoNote;
     }
 
     private StaticSelectElement getLicenseTypeElement(UserDTO userDTO) {
@@ -450,6 +469,9 @@ public class SlackService {
         if (withClarificationNote(userDTO, false)) {
             layoutBlocks.add(buildPlainTextBlock("We have sent the clarification email to the user asking why they could not use an institution email to register.", ACADEMIC_CLARIFICATION_NOTE));
         }
+        if (withEmbargoNote(userDTO)) {
+            layoutBlocks.add(buildPlainTextBlock("We have notified the user that they cannot be approved at this time due to United States embargo policy.", EMBARGOED_COUNTRY_NOTE));
+        }
         if (isMSKUser(userDTO)) {
             layoutBlocks.add(buildPlainTextBlock("The user has been approved and notified automatically. We also changed their license to Academic and clarified with the user.", MSK_USER_NOTE));
         }
@@ -523,6 +545,12 @@ public class SlackService {
         clarifyGroup.add(buildAcademicClarificationOption(user));
         optionGroups.add(OptionGroupObject.builder().label(PlainTextObject.builder().text("Clarify").build()).options(clarifyGroup).build());
 
+        // Add option group - Deny
+        List<OptionObject> denyGroup = new ArrayList<>();
+        // Add option - Send Embargo Email
+        denyGroup.add(buildEmbargoEmailOption(user));
+        optionGroups.add(OptionGroupObject.builder().label(PlainTextObject.builder().text("Deny").build()).options(denyGroup).build());
+
         // Add option group - Other
         List<OptionObject> otherGroup = new ArrayList<>();
         // Add option - Collapse
@@ -546,6 +574,10 @@ public class SlackService {
 
     private OptionObject buildAcademicClarificationOption(UserDTO user) {
         return OptionObject.builder().value(getOptionValue(SEND_ACADEMIC_CLARIFICATION_EMAIL.toString(), user.getLogin())).text(PlainTextObject.builder().text("Send Academic Domain Clarification Email").build()).build();
+    }
+
+    private OptionObject buildEmbargoEmailOption(UserDTO user) {
+        return OptionObject.builder().value(getOptionValue(SEND_EMBARGO_EMAIL.toString(), user.getLogin())).text(PlainTextObject.builder().text("Send Embargoed Country Email").build()).build();
     }
 
     private OptionObject buildCollapseOption(UserDTO user) {

@@ -12,6 +12,7 @@ public enum ActionId {
     , COLLAPSE("collapse")
     , EXPAND("expand")
     , MORE_ACTIONS("more-actions")
+    , SEND_EMBARGO_EMAIL("send-embargo-email")
     , SEND_ACADEMIC_CLARIFICATION_EMAIL("send-academic-clarification-email")
     , UPDATE_USER("update-user")
     ;

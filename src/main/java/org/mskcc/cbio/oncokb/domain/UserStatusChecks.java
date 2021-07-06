@@ -13,12 +13,14 @@ public class UserStatusChecks {
     boolean trialAccountActivated;
     boolean trialAccountInitiated;
     boolean academicClarificationEmailSent;
+    boolean embargoEmailSent;
 
-    public UserStatusChecks(UserDTO userDTO, boolean trialAccountActivated, boolean trialAccountInitiated, boolean academicClarificationEmailSent) {
+    public UserStatusChecks(UserDTO userDTO, boolean trialAccountActivated, boolean trialAccountInitiated, boolean academicClarificationEmailSent, boolean embargoEmailSent) {
         this.userDTO = userDTO;
         this.trialAccountActivated = trialAccountActivated;
         this.trialAccountInitiated = trialAccountInitiated;
         this.academicClarificationEmailSent = academicClarificationEmailSent;
+        this.embargoEmailSent = embargoEmailSent;
     }
 
     public boolean isTrialAccountActivated() { return trialAccountActivated; }
@@ -33,8 +35,12 @@ public class UserStatusChecks {
 
     public void setAcademicClarificationEmailSent(boolean academicClarificationEmailSent) { this.academicClarificationEmailSent = academicClarificationEmailSent; }
 
+    public boolean isEmbargoEmailSent() { return embargoEmailSent; }
+
+    public void setEmbargoEmailSent(boolean embargoEmailSent) { this.embargoEmailSent = embargoEmailSent; }
+
     public boolean isReviewed() {
-        return userDTO.isActivated() || trialAccountInitiated || academicClarificationEmailSent;
+        return userDTO.isActivated() || trialAccountInitiated || academicClarificationEmailSent || embargoEmailSent;
     }
 
     public boolean isTrialAccount() { return trialAccountInitiated && (!userDTO.isActivated() || trialAccountActivated); }

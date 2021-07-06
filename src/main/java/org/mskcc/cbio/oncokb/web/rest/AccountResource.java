@@ -183,7 +183,8 @@ public class AccountResource {
         slackService.sendUserRegistrationToChannel(userDTO, new UserStatusChecks(userDTO,
                 userService.trialAccountActivated(userDTO),
                 userService.trialAccountInitiated(userDTO),
-                slackService.withClarificationNote(userDTO, true)));
+                slackService.withClarificationNote(userDTO, true),
+                slackService.withEmbargoNote(userDTO)));
         return false;
     }
 
