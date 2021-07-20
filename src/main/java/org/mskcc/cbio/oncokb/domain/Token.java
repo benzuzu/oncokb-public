@@ -43,6 +43,10 @@ public class Token implements Serializable {
     private Integer currentUsage = 0;
 
     @NotNull
+    @Column(name = "num_access_ips", nullable = false)
+    private Integer numAccessIps = 0;
+
+    @NotNull
     @Column(name = "renewable", nullable = false)
     private Boolean renewable = true;
 
@@ -124,6 +128,17 @@ public class Token implements Serializable {
         this.currentUsage = currentUsage;
     }
 
+    public Integer getNumAccessIps() { return numAccessIps; }
+
+    public Token numAccessIps(Integer numAccessIps) {
+        this.numAccessIps = numAccessIps;
+        return this;
+    }
+
+    public void setNumAccessIps(Integer numAccessIps) {
+        this.numAccessIps = numAccessIps;
+    }
+
     public Boolean isRenewable() {
         return renewable;
     }
@@ -177,6 +192,7 @@ public class Token implements Serializable {
             ", expiration='" + getExpiration() + "'" +
             ", usageLimit=" + getUsageLimit() +
             ", currentUsage=" + getCurrentUsage() +
+            ", numAccessIps=" + getNumAccessIps() +
             ", renewable='" + isRenewable() + "'" +
             "}";
     }
